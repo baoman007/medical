@@ -1,6 +1,9 @@
 const { query, insert, update } = require('../config/database');
-const { analyzeSymptom, checkEmergency } = require('./ollama');
+const { analyzeSymptom: analyzeWithDeepSeek, checkEmergency } = require('./deepseek');
 const logger = require('../utils/logger');
+
+// 模型配置：是否使用DeepSeek
+const USE_DEEPSEEK = process.env.USE_DEEPSEEK === 'true' || true;
 
 /**
  * 创建AI对话
@@ -76,7 +79,7 @@ async function processAIChat(userId, userInput, conversationId = null) {
     }
 
     // 调用AI模型分析
-    const aiResult = await analyzeSymptom(userInput);
+    const aiResult = await analyzeWithDeepSeek(userInput);
     logger.info('AI分析完成', { userId, department: aiResult.department });
 
     // 如果没有对话ID，创建新对话
@@ -91,7 +94,7 @@ async function processAIChat(userId, userInput, conversationId = null) {
     await addAIMessage(conversationId, 'assistant', aiResult.answer, {
       department: aiResult.department,
       urgency: aiResult.urgency,
-      model: 'ollama',
+      model: 'deepseek-chat',
       requiresReview: false // 根据需要可以设置为true
     });
 

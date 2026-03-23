@@ -1,10 +1,10 @@
-// 医疗AI服务 - 支持本地Ollama模型
-import { analyzeSymptom as analyzeWithOllama, checkEmergency } from './ollama'
+// 医疗AI服务 - 支持DeepSeek API和备用模拟数据
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
 
 const mockDelay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 
-// 配置：是否使用本地Ollama模型
-const USE_LOCAL_MODEL = true
+// 配置：是否使用后端API（DeepSeek）
+const USE_BACKEND_API = true
 
 // 模拟数据（备用）
 const medicalKnowledgeBase = {
@@ -64,15 +64,31 @@ export async function chatWithAI(message) {
     }
   }
 
-  // 使用本地Ollama模型
-  if (USE_LOCAL_MODEL) {
+  // 使用后端API（DeepSeek）
+  if (USE_BACKEND_API) {
     try {
-      console.log('使用本地Ollama模型分析:', message)
-      const result = await analyzeWithOllama(message)
-      console.log('模型返回结果:', result)
-      return result
+      console.log('调用后端API分析:', message)
+      const response = await fetch(`${API_BASE_URL}/ai/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          userId: 1, // 临时用户ID
+          message: message
+        })
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        console.log('后端API返回结果:', result)
+        return result
+      } else {
+        console.error('后端API调用失败，状态码:', response.status)
+        throw new Error(`API返回错误: ${response.status}`)
+      }
     } catch (error) {
-      console.error('本地模型调用失败，切换到备用模式:', error.message)
+      console.error('后端API调用失败，切换到备用模式:', error.message)
       // 继续使用备用方案
     }
   }

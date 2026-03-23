@@ -1,61 +1,68 @@
 const express = require('express');
 const router = express.Router();
-const aiService = require('../services/aiService');
-const appointmentService = require('../services/appointmentService');
 const logger = require('../utils/logger');
+const { checkDeepSeekHealth } = require('../services/deepseek');
 
-// ========================================
-// AI对话接口
-// ========================================
+// 健康检查
+router.get('/health', async (req, res) => {
+  try {
+    const dbHealth = require('../config/database').getConnection() ? true : false;
 
-/**
- * POST /api/ai/chat
- * AI智能问诊
- */
+    // 检查DeepSeek API
+    const deepseekHealth = await checkDeepSeekHealth();
+
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      services: {
+        database: dbHealth ? 'connected' : 'disconnected',
+        deepseek: deepseekHealth.success ? 'connected' : 'disconnected',
+        deepseekModels: deepseekHealth.success ? deepseekHealth.models : []
+      }
+    });
+  } catch (error) {
+    logger.error('健康检查失败:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message
+    });
+  }
+});
+
+// AI对话
 router.post('/ai/chat', async (req, res) => {
   try {
-    const { userId, message, conversationId } = req.body;
+    const { userId, message } = req.body;
 
-    if (!userId || !message) {
+    if (!message || !userId) {
       return res.status(400).json({
         success: false,
         message: '缺少必要参数'
       });
     }
 
-    const result = await aiService.processAIChat(userId, message, conversationId);
+    const aiService = require('../services/aiService');
+    const result = await aiService.processAIChat(userId, message);
 
-    res.json({
-      success: true,
-      data: result
-    });
+    res.json(result);
   } catch (error) {
-    logger.error('AI对话接口错误', error);
+    logger.error('AI对话处理失败:', error);
     res.status(500).json({
       success: false,
-      message: '服务器错误',
-      error: error.message
+      message: '处理失败，请稍后重试',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
 
-/**
- * GET /api/ai/conversations
- * 获取用户对话列表
- */
+// 获取对话列表
 router.get('/ai/conversations', async (req, res) => {
   try {
-    const { userId } = req.query;
+    const userId = req.query.userId || 1; // 临时用户ID
     const limit = parseInt(req.query.limit) || 10;
     const offset = parseInt(req.query.offset) || 0;
 
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        message: '缺少userId参数'
-      });
-    }
-
+    const aiService = require('../services/aiService');
     const conversations = await aiService.getUserConversations(userId, limit, offset);
 
     res.json({
@@ -63,30 +70,21 @@ router.get('/ai/conversations', async (req, res) => {
       data: conversations
     });
   } catch (error) {
-    logger.error('获取对话列表错误', error);
+    logger.error('获取对话列表失败:', error);
     res.status(500).json({
       success: false,
-      message: '服务器错误'
+      message: '获取失败'
     });
   }
 });
 
-/**
- * GET /api/ai/conversations/:conversationId
- * 获取对话详情
- */
-router.get('/ai/conversations/:conversationId', async (req, res) => {
+// 获取对话详情
+router.get('/ai/conversations/:id', async (req, res) => {
   try {
-    const { userId } = req.query;
-    const { conversationId } = req.params;
+    const userId = req.query.userId || 1;
+    const conversationId = req.params.id;
 
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        message: '缺少userId参数'
-      });
-    }
-
+    const aiService = require('../services/aiService');
     const conversation = await aiService.getConversationDetails(conversationId, userId);
 
     if (!conversation) {
@@ -101,54 +99,18 @@ router.get('/ai/conversations/:conversationId', async (req, res) => {
       data: conversation
     });
   } catch (error) {
-    logger.error('获取对话详情错误', error);
+    logger.error('获取对话详情失败:', error);
     res.status(500).json({
       success: false,
-      message: '服务器错误'
+      message: '获取失败'
     });
   }
 });
 
-/**
- * POST /api/ai/report/analyze
- * 分析检查报告
- */
-router.post('/ai/report/analyze', async (req, res) => {
-  try {
-    const { userId, reportData } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        message: '缺少userId参数'
-      });
-    }
-
-    const result = await aiService.analyzeReport(userId, reportData || {});
-
-    res.json({
-      success: true,
-      data: result
-    });
-  } catch (error) {
-    logger.error('报告分析错误', error);
-    res.status(500).json({
-      success: false,
-      message: '服务器错误'
-    });
-  }
-});
-
-// ========================================
-// 预约挂号接口
-// ========================================
-
-/**
- * GET /api/appointments/hospitals
- * 获取医院列表
- */
+// 获取医院列表
 router.get('/appointments/hospitals', async (req, res) => {
   try {
+    const appointmentService = require('../services/appointmentService');
     const hospitals = await appointmentService.getHospitals();
 
     res.json({
@@ -156,29 +118,20 @@ router.get('/appointments/hospitals', async (req, res) => {
       data: hospitals
     });
   } catch (error) {
-    logger.error('获取医院列表错误', error);
+    logger.error('获取医院列表失败:', error);
     res.status(500).json({
       success: false,
-      message: '服务器错误'
+      message: '获取失败'
     });
   }
 });
 
-/**
- * GET /api/appointments/departments
- * 获取科室列表
- */
+// 获取科室列表
 router.get('/appointments/departments', async (req, res) => {
   try {
-    const { hospitalId } = req.query;
+    const hospitalId = req.query.hospitalId;
 
-    if (!hospitalId) {
-      return res.status(400).json({
-        success: false,
-        message: '缺少hospitalId参数'
-      });
-    }
-
+    const appointmentService = require('../services/appointmentService');
     const departments = await appointmentService.getDepartments(hospitalId);
 
     res.json({
@@ -186,157 +139,121 @@ router.get('/appointments/departments', async (req, res) => {
       data: departments
     });
   } catch (error) {
-    logger.error('获取科室列表错误', error);
+    logger.error('获取科室列表失败:', error);
     res.status(500).json({
       success: false,
-      message: '服务器错误'
+      message: '获取失败'
     });
   }
 });
 
-/**
- * GET /api/appointments/doctors
- * 获取医生列表
- */
+// 获取医生列表
 router.get('/appointments/doctors', async (req, res) => {
   try {
-    const { hospitalId, departmentId } = req.query;
+    const departmentId = req.query.departmentId;
+    const hospitalId = req.query.hospitalId;
 
-    if (!hospitalId) {
-      return res.status(400).json({
-        success: false,
-        message: '缺少hospitalId参数'
-      });
-    }
-
-    const doctors = await appointmentService.getDoctors(hospitalId, departmentId);
+    const appointmentService = require('../services/appointmentService');
+    const doctors = await appointmentService.getDoctors(departmentId, hospitalId);
 
     res.json({
       success: true,
       data: doctors
     });
   } catch (error) {
-    logger.error('获取医生列表错误', error);
+    logger.error('获取医生列表失败:', error);
     res.status(500).json({
       success: false,
-      message: '服务器错误'
+      message: '获取失败'
     });
   }
 });
 
-/**
- * GET /api/appointments/schedule
- * 获取医生排班
- */
+// 获取医生排班
 router.get('/appointments/schedule', async (req, res) => {
   try {
-    const { doctorId } = req.query;
-    const startDate = req.query.startDate || new Date().toISOString().split('T')[0];
-    const endDate = req.query.endDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const doctorId = req.query.doctorId;
 
-    if (!doctorId) {
-      return res.status(400).json({
-        success: false,
-        message: '缺少doctorId参数'
-      });
-    }
-
-    const schedules = await appointmentService.getDoctorSchedule(doctorId, startDate, endDate);
+    const appointmentService = require('../services/appointmentService');
+    const schedule = await appointmentService.getDoctorSchedule(doctorId);
 
     res.json({
       success: true,
-      data: schedules
+      data: schedule
     });
   } catch (error) {
-    logger.error('获取医生排班错误', error);
+    logger.error('获取医生排班失败:', error);
     res.status(500).json({
       success: false,
-      message: '服务器错误'
+      message: '获取失败'
     });
   }
 });
 
-/**
- * POST /api/appointments
- * 创建预约
- */
+// 创建预约
 router.post('/appointments', async (req, res) => {
   try {
-    const appointmentData = req.body;
+    const { userId, hospitalId, departmentId, doctorId, appointmentDate, appointmentTime, symptoms } = req.body;
 
-    const requiredFields = ['userId', 'hospitalId', 'departmentId', 'doctorId', 'scheduleId',
-                            'patientName', 'patientPhone', 'appointmentDate', 'appointmentTime'];
-
-    const missingFields = requiredFields.filter(field => !appointmentData[field]);
-    if (missingFields.length > 0) {
+    if (!userId || !hospitalId || !departmentId || !doctorId || !appointmentDate || !appointmentTime) {
       return res.status(400).json({
         success: false,
-        message: `缺少必要参数: ${missingFields.join(', ')}`
+        message: '缺少必要参数'
       });
     }
 
-    const result = await appointmentService.createAppointment(appointmentData);
+    const appointmentService = require('../services/appointmentService');
+    const result = await appointmentService.createAppointment({
+      userId,
+      hospitalId,
+      departmentId,
+      doctorId,
+      appointmentDate,
+      appointmentTime,
+      symptoms
+    });
 
     res.json({
       success: true,
       data: result
     });
   } catch (error) {
-    logger.error('创建预约错误', error);
+    logger.error('创建预约失败:', error);
     res.status(500).json({
       success: false,
-      message: error.message || '服务器错误'
+      message: '预约失败，请稍后重试'
     });
   }
 });
 
-/**
- * GET /api/appointments/user
- * 获取用户预约列表
- */
+// 获取用户预约
 router.get('/appointments/user', async (req, res) => {
   try {
-    const { userId, status } = req.query;
-    const limit = parseInt(req.query.limit) || 20;
+    const userId = req.query.userId || 1;
 
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        message: '缺少userId参数'
-      });
-    }
-
-    const appointments = await appointmentService.getUserAppointments(userId, status, limit);
+    const appointmentService = require('../services/appointmentService');
+    const appointments = await appointmentService.getUserAppointments(userId);
 
     res.json({
       success: true,
       data: appointments
     });
   } catch (error) {
-    logger.error('获取用户预约列表错误', error);
+    logger.error('获取用户预约失败:', error);
     res.status(500).json({
       success: false,
-      message: '服务器错误'
+      message: '获取失败'
     });
   }
 });
 
-/**
- * DELETE /api/appointments/:appointmentId
- * 取消预约
- */
-router.delete('/appointments/:appointmentId', async (req, res) => {
+// 取消预约
+router.delete('/appointments/:id', async (req, res) => {
   try {
-    const { appointmentId } = req.params;
-    const { userId } = req.query;
+    const appointmentId = req.params.id;
+    const userId = req.query.userId || 1;
 
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        message: '缺少userId参数'
-      });
-    }
-
+    const appointmentService = require('../services/appointmentService');
     const result = await appointmentService.cancelAppointment(appointmentId, userId);
 
     res.json({
@@ -344,33 +261,21 @@ router.delete('/appointments/:appointmentId', async (req, res) => {
       data: result
     });
   } catch (error) {
-    logger.error('取消预约错误', error);
+    logger.error('取消预约失败:', error);
     res.status(500).json({
       success: false,
-      message: error.message || '服务器错误'
+      message: '取消失败'
     });
   }
 });
 
-// ========================================
-// 医生复核接口
-// ========================================
-
-/**
- * GET /api/review/tasks
- * 获取待复核任务列表
- */
+// 获取待复核任务
 router.get('/review/tasks', async (req, res) => {
   try {
-    const { doctorId, status } = req.query;
+    const doctorId = req.query.doctorId || 1;
+    const status = req.query.status || 'pending';
 
-    if (!doctorId) {
-      return res.status(400).json({
-        success: false,
-        message: '缺少doctorId参数'
-      });
-    }
-
+    const aiService = require('../services/aiService');
     const tasks = await aiService.getReviewTasks(doctorId, status);
 
     res.json({
@@ -378,18 +283,15 @@ router.get('/review/tasks', async (req, res) => {
       data: tasks
     });
   } catch (error) {
-    logger.error('获取复核任务错误', error);
+    logger.error('获取复核任务失败:', error);
     res.status(500).json({
       success: false,
-      message: '服务器错误'
+      message: '获取失败'
     });
   }
 });
 
-/**
- * POST /api/review/submit
- * 提交复核结果
- */
+// 提交复核结果
 router.post('/review/submit', async (req, res) => {
   try {
     const { taskId, doctorId, action, comment } = req.body;
@@ -401,42 +303,17 @@ router.post('/review/submit', async (req, res) => {
       });
     }
 
-    if (!['approve', 'reject'].includes(action)) {
-      return res.status(400).json({
-        success: false,
-        message: 'action参数错误'
-      });
-    }
-
+    const aiService = require('../services/aiService');
     const result = await aiService.submitReview(taskId, doctorId, action, comment);
 
-    res.json({
-      success: true,
-      data: result
-    });
+    res.json(result);
   } catch (error) {
-    logger.error('提交复核错误', error);
+    logger.error('提交复核失败:', error);
     res.status(500).json({
       success: false,
-      message: error.message || '服务器错误'
+      message: '提交失败'
     });
   }
-});
-
-// ========================================
-// 健康检查接口
-// ========================================
-
-/**
- * GET /api/health
- * 健康检查
- */
-router.get('/health', async (req, res) => {
-  res.json({
-    success: true,
-    message: '服务正常',
-    timestamp: new Date().toISOString()
-  });
 });
 
 module.exports = router;
