@@ -351,19 +351,44 @@ router.post('/report/analyze', upload.single('image'), async (req, res) => {
 
     logger.info('收到报告分析请求，文件名:', req.file.originalname);
 
-    // 将图片转换为base64
-    const imageBase64 = req.file.buffer.toString('base64');
-    const imageMimeType = req.file.mimetype;
+    // 使用Tesseract OCR提取文字
+    const Tesseract = require('tesseract.js');
+
+    logger.info('开始OCR识别...');
+    const { data: { text } } = await Tesseract.recognize(
+      req.file.buffer,
+      'chi_sim+eng',
+      {
+        logger: (m) => {
+          if (m.status === 'recognizing text') {
+            logger.info(`OCR进度: ${(m.progress * 100).toFixed(0)}%`);
+          }
+        }
+      }
+    );
+
+    logger.info('OCR识别完成，提取文字长度:', text.length);
+    logger.info('提取的文字预览:', text.substring(0, 200));
+
+    if (!text || text.trim().length < 50) {
+      return res.status(400).json({
+        success: false,
+        message: '无法从图片中提取文字，请确保图片清晰'
+      });
+    }
 
     // 构建分析提示
-    const prompt = `你是一位专业的医疗报告分析助手。请仔细分析这张医疗检查报告图片，提取以下信息并以JSON格式返回：
+    const prompt = `你是一位专业的医疗报告分析助手。请分析以下医疗检查报告的文字内容：
 
+${text}
+
+请提取以下信息并以JSON格式返回：
 1. 报告类型（如：血常规、生化检查、影像报告等）
-2. 检查指标列表（至少5项），每项包括：
+2. 检查指标列表（至少5项，如果有多项），每项包括：
    - 项目名称
    - 检测结果
    - 参考范围
-   - 状态（正常/偏高/偏低/异常）
+   - 状态（正常/偏高/偏低/异常，根据结果和参考范围判断）
 3. 综合评估总结
 4. 健康建议（至少4条）
 
@@ -382,13 +407,13 @@ router.post('/report/analyze', upload.single('image'), async (req, res) => {
   "suggestions": ["建议1", "建议2", "建议3", "建议4"]
 }`;
 
-    // 使用OpenAI API进行图片分析（支持Vision模型）
-    const analysis = await chatWithOpenAI([
+    // 使用DeepSeek API分析文字内容
+    const analysis = await chatWithDeepSeek([
       {
         role: 'user',
         content: prompt
       }
-    ], imageBase64, imageMimeType);
+    ]);
 
     logger.info('报告分析完成');
 
