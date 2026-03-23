@@ -8,24 +8,57 @@ const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || 'deepseek-chat';
 
 /**
  * 调用DeepSeek API进行对话
+ * @param {Array} messages - 消息数组
+ * @param {String} imageBase64 - 图片base64（可选）
+ * @param {String} imageMimeType - 图片MIME类型（可选）
+ * @param {Object} options - 其他选项
  */
-async function chatWithDeepSeek(messages, options = {}) {
+async function chatWithDeepSeek(messages, imageBase64 = null, imageMimeType = null, options = {}) {
   try {
     logger.info(`调用DeepSeek模型: ${DEEPSEEK_MODEL}`);
     logger.info(`API URL: ${DEEPSEEK_API_URL}`);
     logger.info(`API Key: ${DEEPSEEK_API_KEY.substring(0, 15)}...`);
 
+    // 构建消息，如果有图片则添加到消息中
+    const processedMessages = messages.map(msg => {
+      if (msg.role === 'ai') {
+        return {
+          role: 'assistant',
+          content: msg.content
+        };
+      } else if (imageBase64 && msg.role === 'user') {
+        // 如果有图片，将内容转为数组格式
+        return {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: msg.content
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:${imageMimeType};base64,${imageBase64}`
+              }
+            }
+          ]
+        };
+      } else {
+        return {
+          role: msg.role,
+          content: msg.content
+        };
+      }
+    });
+
     const response = await axios.post(
       DEEPSEEK_API_URL,
       {
         model: DEEPSEEK_MODEL,
-        messages: messages.map(msg => ({
-          role: msg.role === 'ai' ? 'assistant' : msg.role,
-          content: msg.content
-        })),
+        messages: processedMessages,
         temperature: options.temperature || 0.7,
         top_p: options.top_p || 0.9,
-        max_tokens: options.max_tokens || 2000,
+        max_tokens: options.max_tokens || 3000,
         stream: false
       },
       {
@@ -33,7 +66,7 @@ async function chatWithDeepSeek(messages, options = {}) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
         },
-        timeout: 60000 // 60秒超时
+        timeout: 90000 // 90秒超时（图片分析需要更长时间）
       }
     );
 

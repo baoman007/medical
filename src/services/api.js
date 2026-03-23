@@ -141,24 +141,54 @@ export async function chatWithAI(message) {
 }
 
 export async function analyzeReport(imageFile) {
-  await mockDelay(2000)
+  try {
+    console.log('开始上传报告图片:', imageFile.name)
 
-  return {
-    success: true,
-    reportType: '血常规',
-    items: [
-      { name: '白细胞计数 (WBC)', value: '6.5×10⁹/L', reference: '4-10×10⁹/L', status: '正常' },
-      { name: '红细胞计数 (RBC)', value: '4.8×10¹²/L', reference: '4.0-5.5×10¹²/L', status: '正常' },
-      { name: '血红蛋白 (HGB)', value: '142 g/L', reference: '120-160 g/L', status: '正常' },
-      { name: '血小板计数 (PLT)', value: '185×10⁹/L', reference: '100-300×10⁹/L', status: '正常' }
-    ],
-    summary: '您的血常规检查结果均在正常范围内，未发现明显异常。建议保持良好的生活习惯，定期体检。如不适请及时就医。',
-    suggestions: [
-      '继续保持良好的生活习惯',
-      '均衡饮食，适量运动',
-      '充足睡眠，避免熬夜',
-      '定期体检，监测健康'
-    ]
+    const formData = new FormData()
+    formData.append('image', imageFile)
+
+    const response = await fetch(`${API_BASE_URL}/report/analyze`, {
+      method: 'POST',
+      body: formData
+    })
+
+    console.log('报告分析响应状态:', response.status)
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.message || '报告分析失败')
+    }
+
+    const result = await response.json()
+    console.log('报告分析结果:', result)
+
+    // 解析AI返回的JSON
+    let parsedResult
+    try {
+      // 尝试从返回的内容中提取JSON
+      const content = result.content || result
+      const jsonMatch = content.match(/\{[\s\S]*\}/)
+
+      if (jsonMatch) {
+        parsedResult = JSON.parse(jsonMatch[0])
+      } else {
+        throw new Error('无法解析报告分析结果')
+      }
+    } catch (e) {
+      console.error('解析报告结果失败:', e)
+      throw new Error('报告分析结果解析失败')
+    }
+
+    return {
+      success: true,
+      reportType: parsedResult.reportType || '医疗报告',
+      items: parsedResult.items || [],
+      summary: parsedResult.summary || '报告分析完成',
+      suggestions: parsedResult.suggestions || []
+    }
+  } catch (error) {
+    console.error('报告分析错误:', error)
+    throw error
   }
 }
 

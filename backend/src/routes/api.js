@@ -1,7 +1,28 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const logger = require('../utils/logger');
-const { checkDeepSeekHealth } = require('../services/deepseek');
+const { checkDeepSeekHealth, chatWithDeepSeek } = require('../services/deepseek');
+const path = require('path');
+
+// 配置文件上传
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|bmp|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+
+    if (extname && mimetype) {
+      return cb(null, true);
+    }
+    cb(new Error('只支持图片文件格式'));
+  }
+});
 
 // 健康检查
 router.get('/health', async (req, res) => {
@@ -313,6 +334,73 @@ router.post('/review/submit', async (req, res) => {
     res.status(500).json({
       success: false,
       message: '提交失败'
+    });
+  }
+});
+
+// 报告分析
+router.post('/report/analyze', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: '请上传报告图片'
+      });
+    }
+
+    logger.info('收到报告分析请求，文件名:', req.file.originalname);
+
+    // 将图片转换为base64
+    const imageBase64 = req.file.buffer.toString('base64');
+    const imageMimeType = req.file.mimetype;
+
+    // 构建分析提示
+    const prompt = `你是一位专业的医疗报告分析助手。请仔细分析这张医疗检查报告图片，提取以下信息并以JSON格式返回：
+
+1. 报告类型（如：血常规、生化检查、影像报告等）
+2. 检查指标列表（至少5项），每项包括：
+   - 项目名称
+   - 检测结果
+   - 参考范围
+   - 状态（正常/偏高/偏低/异常）
+3. 综合评估总结
+4. 健康建议（至少4条）
+
+请严格按照以下JSON格式返回，不要添加其他文字说明：
+{
+  "reportType": "报告类型",
+  "items": [
+    {
+      "name": "项目名称",
+      "value": "检测结果",
+      "reference": "参考范围",
+      "status": "状态"
+    }
+  ],
+  "summary": "综合评估总结",
+  "suggestions": ["建议1", "建议2", "建议3", "建议4"]
+}`;
+
+    // 调用DeepSeek API
+    const analysis = await chatWithDeepSeek([
+      {
+        role: 'user',
+        content: prompt
+      }
+    ], imageBase64, imageMimeType);
+
+    logger.info('报告分析完成');
+
+    res.json({
+      success: true,
+      ...analysis
+    });
+  } catch (error) {
+    logger.error('报告分析失败:', error);
+    res.status(500).json({
+      success: false,
+      message: '报告分析失败，请稍后重试',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
