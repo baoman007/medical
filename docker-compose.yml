@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  # MySQL数据库 - 使用阿里云镜像
+  # MySQL数据库
   mysql:
-    image: registry.cn-hangzhou.aliyuncs.com/library/mysql:8.0
+    image: mysql:8.0
     container_name: medical-mysql
     restart: always
     environment:
@@ -89,9 +89,9 @@ services:
     networks:
       - medical-network
 
-  # Nginx反向代理（可选） - 使用阿里云镜像
+  # Nginx反向代理（可选）
   nginx:
-    image: registry.cn-hangzhou.aliyuncs.com/library/nginx:alpine
+    image: nginx:alpine
     container_name: medical-nginx
     restart: always
     ports:

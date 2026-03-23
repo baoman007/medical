@@ -1,5 +1,5 @@
-# 多阶段构建 - 使用阿里云镜像
-FROM registry.cn-hangzhou.aliyuncs.com/library/node:18-alpine AS builder
+# 多阶段构建
+FROM node:18-alpine AS builder
 
 # 设置工作目录
 WORKDIR /app
@@ -13,8 +13,8 @@ RUN npm ci --only=production
 # 复制源代码
 COPY src ./src
 
-# 生产阶段 - 使用阿里云镜像
-FROM registry.cn-hangzhou.aliyuncs.com/library/node:18-alpine
+# 生产阶段
+FROM node:18-alpine
 
 # 设置工作目录
 WORKDIR /app
