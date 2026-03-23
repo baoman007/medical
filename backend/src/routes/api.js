@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const logger = require('../utils/logger');
 const { checkDeepSeekHealth, chatWithDeepSeek } = require('../services/deepseek');
+const { chatWithOpenAI } = require('../services/openai');
 const path = require('path');
 
 // 配置文件上传
@@ -381,8 +382,8 @@ router.post('/report/analyze', upload.single('image'), async (req, res) => {
   "suggestions": ["建议1", "建议2", "建议3", "建议4"]
 }`;
 
-    // 调用DeepSeek API
-    const analysis = await chatWithDeepSeek([
+    // 使用OpenAI API进行图片分析（支持Vision模型）
+    const analysis = await chatWithOpenAI([
       {
         role: 'user',
         content: prompt
