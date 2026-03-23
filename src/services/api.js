@@ -53,6 +53,16 @@ const medicalKnowledgeBase = {
   }
 }
 
+// 紧急情况检测函数
+const checkEmergency = (text) => {
+  const emergencyKeywords = [
+    '胸痛', '心悸', '晕厥', '昏迷', '大出血',
+    '严重呼吸困难', '剧烈头痛', '抽搐', '休克',
+    '心跳骤停', '意识不清', '大吐血'
+  ]
+  return emergencyKeywords.some(keyword => text.includes(keyword))
+}
+
 export async function chatWithAI(message) {
   // 检查是否为紧急情况
   if (checkEmergency(message)) {
@@ -68,6 +78,7 @@ export async function chatWithAI(message) {
   if (USE_BACKEND_API) {
     try {
       console.log('调用后端API分析:', message)
+      console.log('API地址:', API_BASE_URL)
       const response = await fetch(`${API_BASE_URL}/ai/chat`, {
         method: 'POST',
         headers: {
@@ -79,16 +90,22 @@ export async function chatWithAI(message) {
         })
       })
 
+      console.log('响应状态:', response.status, response.statusText)
+
       if (response.ok) {
         const result = await response.json()
         console.log('后端API返回结果:', result)
+        console.log('返回的answer字段:', result.answer)
         return result
       } else {
         console.error('后端API调用失败，状态码:', response.status)
+        const errorText = await response.text()
+        console.error('错误响应:', errorText)
         throw new Error(`API返回错误: ${response.status}`)
       }
     } catch (error) {
       console.error('后端API调用失败，切换到备用模式:', error.message)
+      console.error('错误堆栈:', error.stack)
       // 继续使用备用方案
     }
   }

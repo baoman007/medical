@@ -1,24 +1,22 @@
 const axios = require('axios');
 const logger = require('../utils/logger');
 
-// DeepSeek API配置
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
-const DEEPSEEK_API_URL = process.env.DEEPSEEK_API_URL || 'https://api.deepseek.com/v1/chat/completions';
-const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || 'deepseek-chat';
+// OpenAI API配置
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+const OPENAI_API_URL = process.env.OPENAI_API_URL || 'https://api.openai.com/v1/chat/completions';
+const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
 /**
- * 调用DeepSeek API进行对话
+ * 调用OpenAI API进行对话
  */
-async function chatWithDeepSeek(messages, options = {}) {
+async function chatWithOpenAI(messages, options = {}) {
   try {
-    logger.info(`调用DeepSeek模型: ${DEEPSEEK_MODEL}`);
-    logger.info(`API URL: ${DEEPSEEK_API_URL}`);
-    logger.info(`API Key: ${DEEPSEEK_API_KEY.substring(0, 15)}...`);
+    logger.info(`调用OpenAI模型: ${OPENAI_MODEL}`);
 
     const response = await axios.post(
-      DEEPSEEK_API_URL,
+      OPENAI_API_URL,
       {
-        model: DEEPSEEK_MODEL,
+        model: OPENAI_MODEL,
         messages: messages.map(msg => ({
           role: msg.role === 'ai' ? 'assistant' : msg.role,
           content: msg.content
@@ -31,29 +29,29 @@ async function chatWithDeepSeek(messages, options = {}) {
       {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+          'Authorization': `Bearer ${OPENAI_API_KEY}`
         },
         timeout: 60000 // 60秒超时
       }
     );
 
-    logger.info(`DeepSeek模型响应成功`);
+    logger.info(`OpenAI模型响应成功`);
 
     return {
       success: true,
       content: response.data.choices[0].message.content,
-      model: DEEPSEEK_MODEL
+      model: OPENAI_MODEL
     };
   } catch (error) {
     if (error.response) {
-      logger.error(`DeepSeek API错误: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
-      throw new Error(`DeepSeek API调用失败 (${error.response.status}): ${error.response.data?.error?.message || error.message}`);
+      logger.error(`OpenAI API错误: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
+      throw new Error(`OpenAI API调用失败 (${error.response.status}): ${error.response.data?.error?.message || error.message}`);
     } else if (error.request) {
-      logger.error(`DeepSeek API无响应: ${error.message}`);
-      throw new Error(`DeepSeek API无响应，请检查网络连接`);
+      logger.error(`OpenAI API无响应: ${error.message}`);
+      throw new Error(`OpenAI API无响应，请检查网络连接`);
     } else {
-      logger.error(`DeepSeek调用失败: ${error.message}`);
-      throw new Error(`DeepSeek调用失败: ${error.message}`);
+      logger.error(`OpenAI调用失败: ${error.message}`);
+      throw new Error(`OpenAI调用失败: ${error.message}`);
     }
   }
 }
@@ -108,14 +106,14 @@ async function analyzeSymptom(userInput) {
   ];
 
   try {
-    const result = await chatWithDeepSeek(messages, { temperature: 0.6 });
+    const result = await chatWithOpenAI(messages, { temperature: 0.6 });
     return parseMedicalResponse(result.content);
   } catch (error) {
     logger.error('症状分析失败:', error);
     return {
       answer: '抱歉，系统暂时无法处理您的请求。如需帮助，请咨询专业医生。',
       department: '待定',
-      urgency: '视情况'
+      urgency: 'general'
     };
   }
 }
@@ -139,11 +137,11 @@ function parseMedicalResponse(content) {
   if (urgencyMatch) {
     const urgencyText = urgencyMatch[1].trim();
     // 映射紧急程度到数据库枚举值
-    if (urgencyText.includes('紧急') || urgencyText === '紧急') {
+    if (urgencyText.includes('紧急') && !urgencyText.includes('较紧急')) {
       urgency = 'emergency';
-    } else if (urgencyText.includes('较紧急') || urgencyText === '较紧急') {
+    } else if (urgencyText.includes('较紧急')) {
       urgency = 'urgent';
-    } else if (urgencyText.includes('一般') || urgencyText === '一般') {
+    } else if (urgencyText.includes('一般')) {
       urgency = 'general';
     } else {
       urgency = 'moderate';
@@ -172,22 +170,15 @@ function checkEmergency(userInput) {
 }
 
 /**
- * 检查DeepSeek API是否可用
+ * 检查OpenAI API是否可用
  */
-async function checkDeepSeekHealth() {
+async function checkOpenAIHealth() {
   try {
-    // 使用chat接口测试
-    const response = await axios.post(
-      DEEPSEEK_API_URL,
-      {
-        model: DEEPSEEK_MODEL,
-        messages: [{ role: 'user', content: 'ping' }],
-        max_tokens: 5
-      },
+    const response = await axios.get(
+      'https://api.openai.com/v1/models',
       {
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+          'Authorization': `Bearer ${OPENAI_API_KEY}`
         },
         timeout: 10000
       }
@@ -195,10 +186,10 @@ async function checkDeepSeekHealth() {
 
     return {
       success: true,
-      models: [DEEPSEEK_MODEL]
+      models: response.data?.data || []
     };
   } catch (error) {
-    logger.error('DeepSeek健康检查失败:', error.message);
+    logger.error('OpenAI健康检查失败:', error.message);
     return {
       success: false,
       error: error.message
@@ -207,9 +198,9 @@ async function checkDeepSeekHealth() {
 }
 
 module.exports = {
-  chatWithDeepSeek,
+  chatWithOpenAI,
   analyzeSymptom,
   checkEmergency,
-  checkDeepSeekHealth,
+  checkOpenAIHealth,
   getMedicalSystemPrompt
 };

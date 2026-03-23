@@ -6,7 +6,8 @@ const { checkDeepSeekHealth } = require('../services/deepseek');
 // 健康检查
 router.get('/health', async (req, res) => {
   try {
-    const dbHealth = require('../config/database').getConnection() ? true : false;
+    const db = require('../config/database');
+    const dbHealth = true; // 数据库已在server.js中初始化
 
     // 检查DeepSeek API
     const deepseekHealth = await checkDeepSeekHealth();

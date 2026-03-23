@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>API测试</title>
+</head>
+<body>
+  <h1>API测试</h1>
+  <div id="result"></div>
+  
+  <script>
+    async function testAPI() {
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '<p>测试中...</p>';
+      
+      try {
+        console.log('开始测试API...');
+        const response = await fetch('http://localhost:8080/api/ai/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            userId: 1,
+            message: '我头疼'
+          })
+        });
+        
+        console.log('响应状态:', response.status);
+        console.log('响应头:', response.headers);
+        
+        const data = await response.json();
+        console.log('响应数据:', data);
+        
+        resultDiv.innerHTML = `
+          <h2>成功</h2>
+          <pre>${JSON.stringify(data, null, 2)}</pre>
+        `;
+      } catch (error) {
+        console.error('错误:', error);
+        resultDiv.innerHTML = `
+          <h2>错误</h2>
+          <p>${error.message}</p>
+        `;
+      }
+    }
+    
+    testAPI();
+  </script>
+</body>
+</html>

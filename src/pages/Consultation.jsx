@@ -81,6 +81,16 @@ function Consultation() {
     try {
       const response = await chatWithAI(userText)
 
+      console.log('前端收到的响应:', response)
+
+      // 检查响应是否有效
+      if (!response || !response.answer) {
+        console.error('响应格式错误:', response)
+        message.error('返回数据格式错误')
+        setLoading(false)
+        return
+      }
+
       // 检查后端返回的是否为紧急情况
       if (response.isEmergency) {
         setMessages(prev => [
@@ -104,7 +114,8 @@ function Consultation() {
         }])
       }
     } catch (error) {
-      message.error('获取回复失败，请重试')
+      console.error('处理AI响应失败:', error)
+      message.error('获取回复失败，请重试: ' + error.message)
     } finally {
       setLoading(false)
     }
