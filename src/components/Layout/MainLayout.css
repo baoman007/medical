@@ -1,0 +1,66 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.header .logo {
+  font-size: 20px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header .disclaimer {
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.sider {
+  border-right: 1px solid #f0f0f0;
+}
+
+.menu {
+  padding: 16px 0;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: all 0.3s;
+  color: #595959;
+}
+
+.menu-item:hover {
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+.menu-item.active {
+  background: #1890ff;
+  color: white;
+}
+
+.menu-item .icon {
+  margin-right: 12px;
+  font-size: 18px;
+}
+
+.menu-item .label {
+  font-size: 14px;
+}
+
+.content {
+  padding: 24px;
+  background: #f5f5f5;
+  overflow-y: auto;
+}

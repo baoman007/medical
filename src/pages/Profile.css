@@ -1,0 +1,150 @@
+.profile {
+  padding: 8px;
+}
+
+.profile-card,
+.health-card,
+.appointment-card,
+.record-card,
+.settings-card {
+  height: 100%;
+  margin-bottom: 24px;
+}
+
+.profile-card .user-avatar-section {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.profile-card .avatar {
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  margin-bottom: 16px;
+}
+
+.profile-card .user-name {
+  font-size: 24px;
+  font-weight: 600;
+  color: #262626;
+  margin: 0 0 12px 0;
+}
+
+.profile-card .user-tags {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.profile-card .user-info .ant-descriptions-item-label {
+  color: #8c8c8c;
+}
+
+.profile-card .edit-btn {
+  margin-top: 16px;
+}
+
+.health-card .health-item {
+  text-align: center;
+  padding: 12px;
+  background: #fafafa;
+  border-radius: 6px;
+}
+
+.health-item .health-label {
+  font-size: 14px;
+  color: #8c8c8c;
+  margin-bottom: 8px;
+}
+
+.health-item .health-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1890ff;
+}
+
+.checkup-info {
+  padding: 12px;
+  background: #e6f7ff;
+  border-radius: 6px;
+}
+
+.checkup-info .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 14px;
+}
+
+.checkup-info .info-row:first-child {
+  padding-bottom: 12px;
+  border-bottom: 1px solid #d9d9d9;
+}
+
+.checkup-info .info-row span:first-child {
+  color: #8c8c8c;
+}
+
+.checkup-info .info-value {
+  font-weight: 500;
+  color: #262626;
+}
+
+.appointment-item,
+.record-item {
+  padding: 16px;
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+.appointment-item:hover,
+.record-item:hover {
+  background: #fafafa;
+}
+
+.appointment-title,
+.record-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.appointment-title span:first-child,
+.record-title span:first-child {
+  font-size: 16px;
+  font-weight: 500;
+  color: #262626;
+}
+
+.appointment-desc,
+.record-desc {
+  color: #8c8c8c;
+  font-size: 14px;
+}
+
+.setting-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.setting-buttons .ant-btn {
+  flex: 1;
+  min-width: 120px;
+}
+
+.privacy-settings .setting-item {
+  padding: 8px 0;
+}
+
+.setting-item .setting-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: #262626;
+  margin-bottom: 4px;
+}
+
+.setting-item .setting-desc {
+  font-size: 14px;
+  color: #8c8c8c;
+  line-height: 1.6;
+}

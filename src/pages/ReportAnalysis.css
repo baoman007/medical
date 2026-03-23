@@ -1,0 +1,114 @@
+.report-analysis {
+  height: 100%;
+}
+
+.main-card {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.upload-section {
+  min-height: 300px;
+}
+
+.ant-upload-drag {
+  background: #fafafa !important;
+  border: 2px dashed #d9d9d9;
+  border-radius: 8px;
+}
+
+.ant-upload-drag:hover {
+  border-color: #1890ff !important;
+}
+
+.ant-upload-drag-icon {
+  margin: 24px 0 !important;
+}
+
+.ant-upload-drag-icon .anticon {
+  font-size: 48px !important;
+  color: #1890ff;
+}
+
+.ant-upload-text {
+  font-size: 16px;
+  color: #595959;
+}
+
+.ant-upload-hint {
+  color: #8c8c8c;
+}
+
+.progress-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px;
+}
+
+.result-section {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.report-type {
+  font-size: 18px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #262626;
+  margin-bottom: 16px;
+}
+
+.report-items {
+  margin-bottom: 24px;
+}
+
+.item-card {
+  margin-bottom: 12px;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+.item-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-color: #d9d9d9;
+}
+
+.summary-section,
+.suggestions-section {
+  margin-bottom: 24px;
+}
+
+.suggestions-list {
+  list-style: none;
+  padding: 0;
+}
+
+.suggestions-list li {
+  padding: 8px 0;
+  padding-left: 24px;
+  position: relative;
+  color: #595959;
+  line-height: 1.8;
+}
+
+.suggestions-list li:before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: #52c41a;
+  font-weight: bold;
+}
