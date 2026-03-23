@@ -12,8 +12,8 @@ services:
       MYSQL_USER: ${DB_USER:-medical_user}
       MYSQL_PASSWORD: ${DB_PASSWORD:-medical_password}
       TZ: Asia/Shanghai
-    ports:
-      - "3306:3306"
+    # ports:
+    #   - "3306:3306"  # 只在容器内访问，不需要映射到宿主机
     volumes:
       - mysql-data:/var/lib/mysql
       - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
