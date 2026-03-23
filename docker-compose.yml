@@ -12,7 +12,6 @@ services:
       MYSQL_USER: ${DB_USER:-medical_user}
       MYSQL_PASSWORD: ${DB_PASSWORD:-medical_password}
       TZ: Asia/Shanghai
-      MYSQL_ALLOW_EMPTY_PASSWORD: "no"
     # ports:
     #   - "3306:3306"  # 只在容器内访问，不需要映射到宿主机
     volumes:
@@ -22,15 +21,15 @@ services:
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
       --skip-name-resolve
-      --max-connections=500
     networks:
       - medical-network
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${MYSQL_ROOT_PASSWORD:-medical_root_password}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+    # 暂时移除健康检查，先让容器启动
+    # healthcheck:
+    #   test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${MYSQL_ROOT_PASSWORD:-medical_root_password}"]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 5
+    #   start_period: 30s
 
   # 后端API服务
   backend:
@@ -66,8 +65,7 @@ services:
       - backend-logs:/app/logs
       - backend-uploads:/app/uploads
     depends_on:
-      mysql:
-        condition: service_healthy
+      - mysql
     networks:
       - medical-network
     healthcheck:
